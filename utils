@@ -1,0 +1,70 @@
+import json
+import requests
+from pathlib import Path
+import cloudscraper
+
+EMAIL = "marius.jean-baptiste@etu.estia.fr"
+
+def get_login_token(api_url, session):
+    parameters = {'action': 'query', 'meta': 'tokens', 'type': 'login', 'format': 'json'}
+    r = session.get(url=api_url, params=parameters)
+    return r.json()['query']['tokens']['logintoken']
+
+def log_in(api_url, token, username, password, session):
+    parameters = {'action': 'login', 'lgname': username, 'lgpassword': password, 'lgtoken': token, 'format': 'json'}
+    r = session.post(api_url, data=parameters)
+    return r.json()
+
+def get_csrf_token(api_url, session):
+    parameters = {"action": "query", "meta": "tokens", "format": "json"}
+    r = session.get(url=api_url, params=parameters)
+    return r.json()["query"]["tokens"]["csrftoken"]
+
+def setup_session(instance="test.wikidata.org"):
+    """Initialise une session MediaWiki avec authentification"""
+    print("🔹 Initialisation de la session...")
+    session = requests.Session()
+    
+    session.headers.update({
+        'User-Agent': f"my_usernameBot/0.1 (https://{instance}/wiki/User:my_username; mailto:{EMAIL})",
+    })
+    
+    api_url = f'https://{instance}/w/api.php'
+    creds = json.loads(Path("csrf_creds.json").read_text())[instance]
+    username = creds["username"]
+    password = creds["password"]
+    
+    print("🔹 Récupération du token de connexion...")
+    login_token = get_login_token(api_url, session)
+
+    print("🔹 Connexion à l'API...")
+    log_in(api_url, login_token, username, password, session)
+
+    print("🔹 Récupération du token CSRF...")
+    csrf_token = get_csrf_token(api_url, session)
+
+    print("✅ Session configurée avec succès")
+    return session, csrf_token
+
+    import cloudscraper
+
+def get_worldcat_citation(oclc_number):
+    """Récupère la citation WorldCat en utilisant un numéro OCLC"""
+    scraper = cloudscraper.create_scraper(
+        browser={'browser': 'chrome', 'platform': 'darwin', 'desktop': True}
+    )
+    url = 'https://search.worldcat.org/api/citations/export'
+    params = {'oclcNumbers': oclc_number}
+    headers = {'accept': '*/*', 'referer': f'https://search.worldcat.org/fr/title/{oclc_number}'}
+    
+    response = scraper.get(url, params=params, headers=headers)
+    if response.status_code == 200:
+        try:
+            return response.json()["citationText"]
+        except Exception as e:
+            print(f"Erreur JSON : {e}")
+            return None
+    else:
+        print(f"Erreur {response.status_code} en récupérant {oclc_number}")
+        return None
+
