@@ -1,0 +1,59 @@
+import json
+
+def add_title_statement(item_id, title, session, csrf_token, instance):
+    """Ajoute un titre (P98889) à un item Wikidata"""
+    if not title:
+        return  
+    claim = {
+        "mainsnak": {
+            "snaktype": "value",
+            "property": "P98889",
+            "datavalue": {"type": "monolingualtext", "value": {"text": str(title), "language": "en"}}
+        },
+        "type": "statement",
+        "rank": "normal"
+    }
+    
+    parameters = {
+        'action': 'wbeditentity',
+        'format': 'json',
+        'id': item_id,
+        'token': csrf_token,
+        'data': json.dumps({"claims": {"P98889": [claim]}}),
+    }
+    response = session.post(f"https://{instance}/w/api.php", data=parameters)
+    response_data = response.json()
+
+    if "error" in response_data:
+        print(f"❌ Erreur API : {response_data['error']['info']}")
+    else:
+        print("✅ Titre ajouté avec succès")
+
+def add_edition_statement(item_id, edition, session, csrf_token, instance):
+    """Ajoute une édition (P98859)"""
+    if not edition:
+        return  
+    claim = {
+        "mainsnak": {
+            "snaktype": "value",
+            "property": "P98859",
+            "datavalue": {"type": "string", "value": str(edition)}
+        },
+        "type": "statement",
+        "rank": "normal"
+    }
+    
+    parameters = {
+        'action': 'wbeditentity',
+        'format': 'json',
+        'id': item_id,
+        'token': csrf_token,
+        'data': json.dumps({"claims": {"P98859": [claim]}}),
+    }
+    response = session.post(f"https://{instance}/w/api.php", data=parameters)
+    response_data = response.json()
+
+    if "error" in response_data:
+        print(f"❌ Erreur API : {response_data['error']['info']}")
+    else:
+        print("✅ Édition ajoutée avec succès")
